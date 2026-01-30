@@ -1,3 +1,4 @@
+
 // v5.5.2 – Anonymous can only CREATE results; all other writes admin-only.
 // Admin is detected via UID/email; legacy password removed.
 // IMPORTANT: Enforce "create only" for anonymous in Firestore SECURITY RULES.
@@ -388,3 +389,85 @@ async function renamePlayerAcrossMatches(originalName, newName) {
     affected.push({ id: m.id, newTeam1, newTeam2 });
   }
 
+  if (affected.length === 0) { alert(`No matches found with player "${originalName}".`); return; }
+  if (!confirm(`Update ${affected.length} match(es) to rename "${originalName}" -> "${newName}"?`)) { return; }
+
+  try {
+    const CHUNK = 400;
+    for (let i = 0; i < affected.length; i += CHUNK) {
+      const batch = db.batch();
+      const slice = affected.slice(i, i + CHUNK);
+      slice.forEach(({ id, newTeam1, newTeam2 }) => {
+        const ref = db.collection(MATCHES_COL).doc(String(id));
+        batch.update(ref, { team1: newTeam1, team2: newTeam2 });
+      });
+      await batch.commit();
+    }
+
+    alert(`Renamed "${originalName}" to "${newName}" in ${affected.length} match(es).`);
+
+    // Move phone mapping if exists
+    try {
+      const oldRef = db.collection(PLAYERS_COL).doc(originalName);
+      const snap = await oldRef.get();
+      if (snap.exists) {
+        const data = snap.data() || {};
+        const newRef = db.collection(PLAYERS_COL).doc(newName);
+        await newRef.set(data, { merge: true });
+        await oldRef.delete();
+      }
+    } catch (e) {
+      console.warn('Phone mapping move failed:', e);
+    }
+  } catch (err) {
+    console.error('Rename failed:', err);
+    alert('Failed to rename: ' + (err && err.message ? err.message : err));
+  }
+}
+
+async function uploadScheduleToFirestore() {
+  const file = document.getElementById('scheduleUpload').files[0];
+  if (!file) return alert('Choose a schedule .json file');
+
+  const text = await file.text();
+  let arr; try { arr = JSON.parse(text); } catch { return alert('Invalid JSON'); }
+  if (!Array.isArray(arr)) return alert('Invalid format: expected an array');
+
+  if (!confirm('This will overwrite the current matches collection and clear all results. Continue?')) return;
+
+  const batchSize = 400;
+
+  async function clearCollection(col) {
+    const snap = await db.collection(col).get();
+    const chunks = []; let cur = [];
+    snap.forEach(d => { cur.push(d); if (cur.length >= batchSize) { chunks.push(cur); cur = []; } });
+    if (cur.length) chunks.push(cur);
+    for (const group of chunks) {
+      const batch = db.batch();
+      group.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+  }
+
+  await clearCollection(MATCHES_COL);
+  await clearCollection(RESULTS_COL);
+
+  const batch = db.batch();
+  arr.forEach((m, idx) => {
+    const id = String(idx);
+    const ref = db.collection(MATCHES_COL).doc(id);
+    batch.set(ref, { round: m.round, team1: m.team1, team2: m.team2 });
+  });
+  await batch.commit();
+
+  alert('Schedule uploaded to Firestore');
+}
+
+async function deleteAllResults() {
+  if (!confirm('Delete ALL results from Firestore?')) return;
+  const snap = await db.collection(RESULTS_COL).get();
+  const batch = db.batch();
+  snap.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  alert('All results deleted');
+}
