@@ -1,4 +1,3 @@
-
 // v5.5.2 – Anonymous can only CREATE results; all other writes admin-only.
 // Admin is detected via UID/email; legacy password removed.
 // IMPORTANT: Enforce "create only" for anonymous in Firestore SECURITY RULES.
@@ -219,7 +218,7 @@ function renderMatchesTable() {
       : `<span class="badge badge-muted"><span class="dot"></span>Not played</span>`;
 
     // Only admins see the Delete button
-    const deleteBtn = isAdmin ? `clearDelete</button>` : '';
+    const deleteBtn = isAdmin ? `<button class="danger" data-action="clear" data-id="${m.id}">Delete</button>` : '';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -228,7 +227,7 @@ function renderMatchesTable() {
       <td><strong>${setText}</strong></td>
       <td>${statusHTML}</td>
       <td>
-        editEdit</button>
+        <button data-action="edit" data-id="${m.id}">Edit</button>
         ${deleteBtn}
       </td>
     `;
@@ -299,7 +298,7 @@ function renderStandings() {
     const digits = (phoneRaw.match(/\d+/g) || []).join('');
     const waLink = digits ? `https://wa.me/${digits}` : '';
     const phoneHTML = digits
-      ? `${waLink}${phoneRaw}</a>`
+      ? `<a href="${waLink}" target="_blank" class="phone-link" title="Chat on WhatsApp">${phoneRaw}</a>`
       : (isAdmin ? `<button class="add-phone" data-player="${r.Player}">+ add</button>` : '');
 
     const tr = document.createElement('tr');
@@ -440,7 +439,7 @@ async function uploadScheduleToFirestore() {
   async function clearCollection(col) {
     const snap = await db.collection(col).get();
     const chunks = []; let cur = [];
-    snap.forEach(d => { cur.push(d); if (cur.length >= batchSize) { chunks.push(cur); cur = []; } });
+    snap.forEach(d => { cur.push(d); if (cur.length >= batchSize) { chunks.append(cur); cur = []; } });
     if (cur.length) chunks.push(cur);
     for (const group of chunks) {
       const batch = db.batch();
