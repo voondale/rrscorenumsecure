@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Everyone can read everything
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.uid == 'u41xSagyqkaS7utjcQJV4lhfZFg2'
+      );
+    }
+
+    // Results: anonymous (any signed-in) can CREATE, only admin can UPDATE/DELETE
+    match /results/{matchId} {
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    // Admin-only write elsewhere
+    match /matches/{id} { allow write: if isAdmin(); }
+    match /players/{name} { allow write: if isAdmin(); }
+  }
+}

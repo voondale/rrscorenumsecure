@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Score Tracker – One Set (v5.5.1 – Firestore)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Firebase SDKs (compat for simplicity) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script>
+  const firebaseConfig = {"apiKey": "AIzaSyBbWxryZcM5L8CDCARMXPWKWFwnt2FoAxc", "authDomain": "voontennis.firebaseapp.com", "projectId": "voontennis", "storageBucket": "voontennis.firebasestorage.app", "messagingSenderId": "656217805388", "appId": "1:656217805388:web:f49b2279ac8916cb5fdae9", "measurementId": "G-4WWFWESVYJ"};
+  firebase.initializeApp(firebaseConfig);
+  // Viewers are signed in anonymously by default; admins can sign in with email/password below.
+  firebase.auth().signInAnonymously().catch(console.error);
+  </script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>One‑Set League Tracker</h1>
+    <div class="actions"><!-- legacy admin removed; email/password only --></div>
+  </header>
+
+  <main>
+    <!-- Email/Password Admin Sign-In -->
+    <section class="card" id="authCard">
+      <h2>Admin Sign‑In</h2>
+      <div class="field">
+        <label for="adminEmail">Email</label>
+        <input id="adminEmail" type="email" placeholder="admin@example.com" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="buttons-row">
+        <button id="emailSignInBtn" class="primary">Sign In</button>
+        <button id="emailSignOutBtn">Sign Out</button>
+      </div>
+      <div class="note" id="authStatus">Not signed in (anonymous viewer)</div>
+    </section>
+
+    <section class="card collapsible open" id="enter">
+      <div class="collapsible-header">
+        <h2>Enter Match Result</h2>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="field">
+          <label for="matchSelect">Match</label>
+          <select id="matchSelect"><option value="">— Select a match —</option></select>
+        </div>
+        <div id="scoreInputs" class="score-grid hidden">
+          <div class="team-block">
+            <div class="team-name" id="team1Label">Team 1</div>
+            <input type="number" id="team1Score" min="0" placeholder="Team 1 games" />
+          </div>
+          <div class="vs">vs</div>
+          <div class="team-block">
+            <div class="team-name" id="team2Label">Team 2</div>
+            <input type="number" id="team2Score" min="0" placeholder="Team 2 games" />
+          </div>
+        </div>
+        <div id="previousResult" class="note"></div>
+        <div class="buttons-row">
+          <button id="saveScore" class="primary">Save Match</button>
+          <button id="deleteResultBtn" class="danger">Delete Result</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="standings">
+      <h2>Standings</h2>
+      <div class="note">Sorted by Points, then Wins, then Player name. (Realtime from Firestore)</div>
+      <table id="standingsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Phone</th>
+            <th>Pts</th>
+            <th>MP</th>
+            <th>W</th>
+            <th>Raw</th>
+            <th>L</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card" id="matches">
+      <h2>Matches</h2>
+      <table id="matchesTable">
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Match</th>
+            <th>Set</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card" id="adminPanel" style="display:none;">
+      <h2>Admin – Upload Schedule</h2>
+      <input type="file" id="scheduleUpload" accept=".json" />
+      <button id="uploadScheduleBtn" class="primary">Upload Schedule to Firestore</button>
+      <button id="resetScheduleBtn" class="danger">Delete All Results</button>
+      <p class="note">Uploads write to Firestore collections <code>matches</code> and <code>results</code>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <small>Hosted on GitHub Pages; data stored in Firestore (project: <code>voontennis</code>). Use a local server for local testing.</small>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
